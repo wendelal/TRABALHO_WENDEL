@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delta Tecnologia</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f6f9;
+      color: #333;
+    }
+
+    header {
+      background: #0077b6;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .vaga {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+    }
+    .vaga:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+
+    .vaga h3 {
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      color: #0077b6;
+    }
+    .vaga p {
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-content h2 {
+      margin-bottom: 15px;
+      color: #0077b6;
+    }
+    .modal-content label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    .modal-content input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    .modal-content button {
+      margin-top: 15px;
+      padding: 10px;
+      width: 100%;
+      border: none;
+      background: #0077b6;
+      color: white;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .modal-content button:hover {
+      background: #005f87;
+    }
+    .close {
+      float: right;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: #555;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(16,185,129,0.16);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 220ms cubic-bezier(.2,.8,.2,1), opacity 220ms ease;
+      min-width: 260px;
+      max-width: 90%;
+      text-align: left;
+    }
+    .toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .toast .icon {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      display: inline-block;
+    }
+    .toast .msg {
+      font-weight: 600;
+      font-size: 0.97rem;
+    }
+    @media (max-width: 420px) {
+      .toast { padding: 12px 14px; min-width: 200px; }
+      .toast .msg { font-size: 0.92rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>Delta Tecnologia - Vagas de Emprego</header>
+
+  <main class="container" id="listaVagas"></main>
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <span class="close" id="fechar">&times;</span>
+      <h2 id="vagaSelecionada">Candidatar-se</h2>
+      <form id="formCandidatura">
+        <label for="nome">Nome Completo:</label>
+        <input type="text" id="nome" required>
+
+        <label for="curriculo">Currículo (PDF/DOC):</label>
+        <input type="file" id="curriculo" accept=".pdf,.doc,.docx" required>
+
+        <button type="submit">Enviar Candidatura</button>
+      </form>
+    </div>
+  </div>
+
+
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-hidden="true">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.12)"/>
+      <path d="M7.5 12.5L10 15L16.5 8.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="msg" id="toastMsg">Candidatura enviada com sucesso!</div>
+  </div>
+
+
+  <script>
+    const vagas = [
+      "Desenvolvedor Frontend", "Desenvolvedor Backend", "Analista de Dados", "Engenheiro de Software",
+      "Designer UI/UX", "Suporte Técnico", "Gerente de Projetos", "Analista de QA", "DevOps Engineer",
+      "Especialista em Segurança da Informação", "Analista de Sistemas", "Administrador de Redes",
+      "Cientista de Dados", "Estagiário em TI", "Consultor de ERP", "Product Owner",
+      "Scrum Master", "Engenheiro de Machine Learning", "Arquiteto de Soluções",
+      "Especialista em Cloud", "Analista de Marketing Digital", "Designer Gráfico",
+      "Assistente Administrativo", "Consultor Comercial", "Engenheiro de Hardware",
+      "Técnico em Informática", "Analista Financeiro", "Desenvolvedor Mobile",
+      "Especialista em Blockchain", "Atendente de Suporte Nível 1"
+    ];
+    const listaVagas = document.getElementById("listaVagas");
+    vagas.forEach((vaga, index) => {
+      const div = document.createElement("div");
+      div.classList.add("vaga");
+      div.innerHTML = `
+        <h3>${vaga}</h3>
+        <p>Descrição breve da vaga ${index+1}. Venha trabalhar na Delta Tecnologia.</p>
+      `;
+      div.onclick = () => abrirModal(vaga);
+      listaVagas.appendChild(div);
+    });
+    const modal = document.getElementById("modal");
+    const fechar = document.getElementById("fechar");
+    const vagaSelecionada = document.getElementById("vagaSelecionada");
+
+    function abrirModal(vaga) {
+      vagaSelecionada.innerText = "Candidatar-se: " + vaga;
+      modal.style.display = "flex";
+    }
+    fechar.onclick = () => modal.style.display = "none";
+    window.onclick = (e) => { if(e.target == modal) modal.style.display = "none"; }
+
+
+    const toast = document.getElementById("toast");
+    const toastMsg = document.getElementById("toastMsg");
+    let toastTimeout = null;
+
+    function showToast(message, duration = 3000) {
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+      }
+      toastMsg.textContent = message;
+      toast.setAttribute("aria-hidden", "false");
+      toast.classList.add("show");
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove("show");
+        toast.setAttribute("aria-hidden", "true");
+        toastTimeout = null;
+      }, duration);
+    }
+    document.getElementById("formCandidatura").onsubmit = (e) => {
+      e.preventDefault();
+      modal.style.display = "none";
+      showToast("Candidatura enviada com sucesso!");
+      e.target.reset();
+    }
+  </script>
+</body>
+</html>
